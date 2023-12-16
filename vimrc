@@ -27,9 +27,6 @@ set backspace=indent,eol,start
 " Add number to each line on the left-hand size
 set number
 
-
-
-
 " Set shift width to 4 spaces
 set shiftwidth=4
 
@@ -90,6 +87,9 @@ Plug 'sheerun/vim-polyglot'
 
 " Autopairing 
 " Plug 'jiangmiao/auto-pair'
+
+" LaTeX plugin for ViM
+Plug 'lervag/vimtex'
 
 " NERDTree, a file explorer
 Plug 'preservim/nerdtree'
@@ -163,6 +163,13 @@ let g:minimap_auto_start = 1
 let g:minimap_auto_start_win_enter = 1
 " If minimap is the only window left close it
 " autocmd BufEnter * if tabpagenr('$') == 1 && winnr('$') == 1 && exists('b:minimap') && b:minimap.isTabTree() | quit | endif
+
+" ViMTeX
+let g:vimtex_view_method = 'zathura'
+
+
+
+
 " }}}
 
 " STATUS LINE ============================================================= {{{

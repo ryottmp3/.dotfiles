@@ -1,7 +1,8 @@
 # Path to your oh-my-zsh installation.
   export ZSH=~/.oh-my-zsh
-export TERM="xterm-256color"
-
+export TERM="kitty"
+export EDITOR=vim
+export QT_QPA_PLATFORM=wayland
 # Set name of the theme to load.
 # Look in ~/.oh-my-zsh/themes/
 # Optionally, if you set this to "random", it'll load a random theme each
@@ -53,11 +54,12 @@ HIST_STAMPS="yyyy-mm-dd"
 plugins=(git)
 
 # User configuration
-export PATH="/usr/local/bin:/usr/bin:/bin:/usr/local/games:/usr/games:/usr/local/sbin:/usr/sbin:/sbin:/home/ryott/.config/scripts"
+export PATH="/usr/local/bin:/usr/bin:/bin:/usr/local/games:/usr/games:/usr/local/sbin:/usr/sbin:/sbin:/home/ryott/.config/scripts:/usr/lib/surfraw:/usr/bin/links"
 # export MANPATH="/usr/local/man:$MANPATH"
 
 source $ZSH/oh-my-zsh.sh
 
+export RNDATA=~/radon/data
 # You may need to manually set your language environment
 # export LANG=en_US.UTF-8
 
@@ -84,6 +86,14 @@ alias zshrc="vim ~/.zshrc"
 alias ohmyzsh="vim ~/.oh-my-zsh"
 alias l='ls -lh'
 alias L='ls -lah'
-
+alias clean='clear && fastfetch'
+alias analysis='cd ~/pythonrnemanationanalysis && pipenv shell && clear && fastfetch'
+alias playground='cd ~/Projects/playground && pipenv shell && clear && fastfetch'
+alias radon='cd ~/radon && pipenv shell && clear && fastfetch'
+alias sshbison='ssh ryottmp3@bison.sdsmt.edu'
+alias pdf='mupdf'
+alias ...='nocorrect ...'
+alias pdftex='pdflatex'
 # Startup Sequence
-hyfetch
+# hyfetch # hyfetch was being too slow for my workflow
+fastfetch
