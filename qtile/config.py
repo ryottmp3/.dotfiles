@@ -80,9 +80,85 @@ keys = [
 
     # screenshot utility
     Key([mod], "p", lazy.spawn("scrot ~/Pictures/sceenshots/%Y-%m-%d-%T-screenshot.png"), desc="Takes a screenshot"),
+
+    # Volume Control
+    Key([], "XF86AudioLowerVolume", lazy.spawn("amixer sset Master 5%-"), desc="Lowers Volume by 5%"),
+    Key([], "XF86AudioRaiseVolume", lazy.spawn("amixer sset Master 5%+"), desc="Raises Volume by 5%"),
+
+]
+groups = [
+    # Screen affinity to ensure windows are on the right screen
+    Group(name="1", screen_affinity=0),
+    Group(name="2", screen_affinity=0),
+    Group(name="3", screen_affinity=0),
+    Group(name="4", screen_affinity=0),
+    Group(name="5", screen_affinity=1),
+    Group(name="6", screen_affinity=1),
+    Group(name="7", screen_affinity=1),
+    Group(name="8", screen_affinity=1),
+    Group(name="9", screen_affinity=2),
+    Group(name="0", screen_affinity=2),
 ]
 
-groups = [Group(i) for i in "123456789"]
+def go_to_group(name: str):
+    def _inner(qtile) -> None:
+        # If there's only one screen, have them all on the same screen.
+        if len(qtile.screens) == 1:
+            qtile.groups_map[name].toscreen()
+            return
+
+        elif len(qtile.screens) == 2:
+            if name in '12345':
+                qtile.focus_screen(0)
+                qtile.groups_map[name].toscreen()
+            elif name in '67890':
+                qtile.focus_screen(1)
+                qtile.groups_map[name].toscreen()
+
+        elif len(qtile.screens) == 3:
+            if name in '1234':
+                qtile.focus_screen(0)
+                qtile.groups_map[name].toscreen()
+            elif name in '5678':
+                qtile.focus_screen(1)
+                qtile.groups_map[name].toscreen()
+            elif name in '90':
+                qtile.focus_screen(2)
+                qtile.groups_map[name].toscreen()
+
+    return _inner
+
+
+def go_to_group_and_move_window(name: str):
+    def _inner(qtile):
+        if len(qtile.screens) == 1:
+            qtile.current_window.togroup(name, switch_group=True)
+            return
+
+        elif len(qtile.screens) == 2:
+            if name in "12345":
+                qtile.current_window.togroup(name, switch_group=False)
+                qtile.focus_screen(0)
+                qtile.groups_map[name].toscreen()
+            elif name in "67890":
+                qtile.current_window.togroup(name, switch_group=False)
+                qtile.focus_screen(1)
+                qtile.groups_map[name].toscreen()
+        elif len(qtile.screens) == 3:
+            if name in "1234":
+                qtile.current_window.togroup(name, switch_group=False)
+                qtile.focus_screen(0)
+                qtile.groups_map[name].toscreen()
+            elif name in "5678":
+                qtile.current_window.togroup(name, switch_group=False)
+                qtile.focus_screen(1)
+                qtile.groups_map[name].toscreen()
+            elif name in "90":
+                qtile.current_window.togroup(name, switch_group=False)
+                qtile.focus_screen(2)
+                qtile.groups_map[name].toscreen()
+
+    return _inner
 
 for i in groups:
     keys.extend(
@@ -91,14 +167,14 @@ for i in groups:
             Key(
                 [mod],
                 i.name,
-                lazy.group[i.name].toscreen(),
+                lazy.function(go_to_group(i.name)),
                 desc="Switch to group {}".format(i.name),
             ),
             # mod1 + shift + letter of group = switch to & move focused window to group
             Key(
                 [mod, "shift"],
                 i.name,
-                lazy.window.togroup(i.name, switch_group=True),
+                lazy.function(go_to_group_and_move_window(i.name)),
                 desc="Switch to & move focused window to group {}".format(i.name),
             ),
             # Or, use below if you prefer not to switch to that group.
@@ -113,7 +189,7 @@ layouts = [
     # layout.Max(),
     # Try more layouts by unleashing below layouts.
     # layout.Stack(num_stacks=2),
-    layout.Bsp(margin = 5),
+    layout.Bsp(),
     # layout.Matrix(),
     # layout.MonadTall(margin = 8),
     # layout.MonadWide(),
@@ -126,19 +202,19 @@ layouts = [
 ]
 
 widget_defaults = dict(
-    font="sans",
+    font="mono",
     fontsize=12,
     padding=3,
 )
 extension_defaults = widget_defaults.copy()
 
+gB1 = widget.GroupBox(visible_groups=['1','2','3','4','5','6','7','8','9','0'])
 screens = [
     Screen(
         top=bar.Bar(
             [
                 widget.CurrentLayout(),
-                widget.GroupBox(),
-                widget.Prompt(),
+                gB1,
                 widget.WindowName(),
                 widget.Chord(
                     chords_colors={
@@ -146,14 +222,17 @@ screens = [
                     },
                     name_transform=lambda name: name.upper(),
                 ),
+                widget.Pomodoro(),
                 widget.NetGraph(),
-                widget.OpenWeather(location="Rapid City", format='{temp}'),
+                widget.OpenWeather(location="Rapid City",
+                                   format='{location_city}: {temp}*C; ',
+                                   update_interval=300,
+                                   ),
                 widget.TextBox("Welcome to the Internet, Ryott! Your Volume is at ", name="default"),
                 widget.Volume(),
-                # NB Systray is incompatible with Wayland, consider using StatusNotifier instead
-                # widget.StatusNotifier(),
-                widget.Systray(),
-                widget.Clock(format="%Y-%m-%d %a %I:%M %p"),
+
+
+                widget.Clock(format="%Y-%m-%d %a %H:%M"),
                 widget.QuickExit(),
             ],
             24,
@@ -162,6 +241,189 @@ screens = [
         ),
     ),
 ]
+# gB1 = widget.GroupBox(visible_groups=['1','2','3','4'])
+# gB2 = widget.GroupBox(visible_groups=['5','6','7','8'])
+# gB3 = widget.GroupBox(visible_groups=['9','0'])
+# Reconfigure Screens
+
+reconfigure_screens = True
+@hook.subscribe.screens_reconfigured
+async def _():
+    if len(qtile.screens) == 1:
+        gB1 = widget.GroupBox(visible_groups=['1','2','3','4','5','6','7','8','9','0'])
+
+        screens = [
+            Screen(
+                top=bar.Bar(
+                    [
+                        widget.CurrentLayout(),
+                        gB1,
+                        widget.WindowName(),
+                        widget.Chord(
+                            chords_colors={
+                                "launch": ("#ff0000", "#ffffff"),
+                            },
+                            name_transform=lambda name: name.upper(),
+                        ),
+                        widget.Pomodoro(),
+                        widget.NetGraph(),
+                        widget.OpenWeather(location="Rapid City",
+                                           format='{location_city}: {temp}*C; ',
+                                           update_interval=300,
+                                           ),
+                        widget.TextBox("Welcome to the Internet, Ryott! Your Volume is at ", name="default"),
+                        widget.Volume(),
+
+
+                        widget.Clock(format="%Y-%m-%d %a %H:%M"),
+                        widget.QuickExit(),
+                    ],
+                    24,
+                    # border_width=[2, 0, 2, 0],  # Draw top and bottom borders
+                    # border_color=["ff00ff", "000000", "ff00ff", "000000"]  # Borders are magenta
+                ),
+            ),
+        ]
+    elif len(qtile.screens) == 2:
+        gB1 = widget.GroupBox(visible_groups=['1','2','3','4','5'])
+        gB2 = widget.GroupBox(visible_groups=['6','7','8','9','0'])
+
+        screens = [
+            Screen(
+                top=bar.Bar(
+                    [
+                        widget.CurrentLayout(),
+                        gB1,
+                        widget.WindowName(),
+                        widget.Chord(
+                            chords_colors={
+                                "launch": ("#ff0000", "#ffffff"),
+                            },
+                            name_transform=lambda name: name.upper(),
+                        ),
+                        widget.Pomodoro(),
+                        widget.NetGraph(),
+                        widget.OpenWeather(location="Rapid City",
+                                           format='{location_city}: {temp}*C; ',
+                                           update_interval=300,
+                                           ),
+                        widget.TextBox("Welcome to the Internet, Ryott! Your Volume is at ", name="default"),
+                        widget.Volume(),
+
+
+                        widget.Clock(format="%Y-%m-%d %a %H:%M"),
+                        widget.QuickExit(),
+                    ],
+                    24,
+                    # border_width=[2, 0, 2, 0],  # Draw top and bottom borders
+                    # border_color=["ff00ff", "000000", "ff00ff", "000000"]  # Borders are magenta
+                ),
+            ),
+
+            Screen(
+                top = bar.Bar(
+                    [
+                        widget.CurrentLayout(),
+                        gB2,
+                        widget.Prompt(),
+                        widget.WindowName(),
+                        widget.CheckUpdates(
+                            colour_have_updates='ff0000',
+                            colour_no_updates='ffffff',
+                            distro='Arch_checkupdates',
+                            font='mono',
+                            no_update_string='No Updates',
+                            update_interval=60,
+                        ),
+                        widget.Spacer(length=50),
+                        widget.Pomodoro(),
+                        widget.Spacer(length=50),
+                        widget.Clock(format="%Y-%m-%d %a %H:%M"),
+                    ],
+                    24,
+                )
+            ),
+        ]
+    elif len(qtile.screens) == 3:
+        gB1 = widget.GroupBox(visible_groups=['1','2','3','4'])
+        gB2 = widget.GroupBox(visible_groups=['5','6','7','8'])
+        gB3 = widget.GroupBox(visible_groups=['9','0'])
+        screens = [
+            Screen(
+                top=bar.Bar(
+                    [
+                        widget.CurrentLayout(),
+                        gB1,
+                        widget.WindowName(),
+                        widget.Chord(
+                            chords_colors={
+                                "launch": ("#ff0000", "#ffffff"),
+                            },
+                            name_transform=lambda name: name.upper(),
+                        ),
+                        widget.Pomodoro(),
+                        widget.NetGraph(),
+                        widget.OpenWeather(location="Rapid City",
+                                           format='{location_city}: {temp}*C; ',
+                                           update_interval=300,
+                                           ),
+                        widget.TextBox("Welcome to the Internet, Ryott! Your Volume is at ", name="default"),
+                        widget.Volume(),
+
+
+                        widget.Clock(format="%Y-%m-%d %a %H:%M"),
+                        widget.QuickExit(),
+                    ],
+                    24,
+                    # border_width=[2, 0, 2, 0],  # Draw top and bottom borders
+                    # border_color=["ff00ff", "000000", "ff00ff", "000000"]  # Borders are magenta
+                ),
+            ),
+
+            Screen(
+                top = bar.Bar(
+                    [
+                        widget.CurrentLayout(),
+                        gB2,
+                        widget.Prompt(),
+                        widget.WindowName(),
+                        widget.CheckUpdates(
+                            colour_have_updates='ff0000',
+                            colour_no_updates='ffffff',
+                            distro='Arch_checkupdates',
+                            font='mono',
+                            no_update_string='No Updates',
+                            update_interval=60,
+                        ),
+                        widget.Spacer(length=50),
+                        widget.Pomodoro(),
+                        widget.Spacer(length=50),
+                        widget.Clock(format="%Y-%m-%d %a %H:%M"),
+                    ],
+                    24,
+                )
+            ),
+            Screen(
+                top = bar.Bar(
+                    [
+                        widget.CurrentLayout(),
+                        gB3,
+                        widget.Spacer(),
+                        widget.Chord(),
+                    ],
+                    24),
+            ),
+
+        ]
+    if hasattr(gB1, 'bar'):
+        gB1.bar.draw()
+    if hasattr(gB2, 'bar'):
+        gB2.bar.draw()
+    if hasattr(gB3, 'bar'):
+        gB3.bar.draw()
+
+
+
 
 # Drag floating layouts.
 mouse = [
@@ -189,7 +451,6 @@ floating_layout = layout.Floating(
 )
 auto_fullscreen = True
 focus_on_window_activation = "smart"
-reconfigure_screens = True
 
 # If things like steam games want to auto-minimize themselves when losing
 # focus, should we respect this or not?
